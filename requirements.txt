@@ -1,0 +1,2 @@
+click==6.7
+setuptools==3.3
