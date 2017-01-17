@@ -1,4 +1,7 @@
 import click
+import os
+import core
+import utils
 
 __author__ = 'Tomas Fiedor'
 
@@ -10,9 +13,22 @@ def cli():
 
 
 @cli.command(short_help='Initializes bkit repository')
-def init():
+@click.argument('dst', required=False, default=os.getcwd())
+@click.option('--verify', '-c', default=False,
+              help='verifies if there exists bkit directory in the system already')
+def init(dst, verify):
     """Inits the bkit repository"""
-    click.echo('bkit init run')
+    utils.log("Called bkit.init()")
+
+    # if there exists bkit directories, ask for confirmation
+    if verify and not core.get_existing_bkit_dirs():
+        utils.log('Found following .bkit directories')
+        click.confirm('Continue? [y/n]')
+
+    if not os.path.isdir(dst):
+        utils.error("'%s' is not a valid directory" % dst)
+
+    core.initialize_bkit_dir(os.path.join(dst, '.bkit'))
 
 
 @cli.group(short_help='Makes new incremental or standalone backup pack')
