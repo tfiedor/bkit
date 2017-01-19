@@ -1,15 +1,27 @@
+import atexit
 import click
 import os
 import core
 import utils
+import config
 
 __author__ = 'Tomas Fiedor'
 
 
 @click.group()
-def cli():
-    """bkit is a simple backup control system"""
+@click.option('--discover', '-d', default=False,
+              help='discovers .bkits inside the whole filesystem')
+def cli(discover):
+    """bkit is a simple backup control system
+
+    TODO: Maybe the registering should be confirmed?
+    """
+    if discover:
+        for bkit_dir in core.get_existing_bkit_dirs():
+            if not core.is_registered(bkit_dir):
+                core.register_bkit(bkit_dir)
     click.echo('Hello world!')
+    atexit.register(config.save_config)
 
 
 @cli.command(short_help='Initializes bkit repository')
@@ -21,9 +33,9 @@ def init(dst, verify):
     utils.log("Called bkit.init()")
 
     # if there exists bkit directories, ask for confirmation
-    if verify and not core.get_existing_bkit_dirs():
+    if verify and len(core.get_registered_bkits()):
         utils.log('Found following .bkit directories')
-        click.confirm('Continue? [y/n]')
+        click.confirm('Continue?')
 
     if not os.path.isdir(dst):
         utils.error("'%s' is not a valid directory" % dst)
