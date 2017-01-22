@@ -19,3 +19,7 @@ def warn(message):
 def error(message):
     click.echo('[bkit error] %s' % message)
     exit(1)
+
+
+class BkitFailureException(Exception):
+    pass

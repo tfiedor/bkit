@@ -6,6 +6,23 @@ import config
 __author__ = 'Tomas Fiedor'
 
 
+class BkitRepository(object):
+    """Wrapper over bkit directory"""
+    def __init__(self, directory="", tag="", registered=True):
+        """
+        Arguments:
+            directory(pathname): path to the bkit directory
+            tag(string): tag for the bkit directory
+            registered(bool): true if the bkit is registered in the config
+        """
+        self.dir = directory
+        self.tag = tag
+        self.registered = registered
+
+    def __repr__(self):
+        return "{}@{}".format(self.tag, self.dir)
+
+
 def get_existing_bkit_dirs():
     """
     Checks the filesystem for existing .bkit directories,
@@ -32,7 +49,7 @@ def get_registered_bkits():
     """
     return [
         section for section in config.config.sections() if os.path.exists(section)
-    ]
+        ]
 
 
 def is_registered(bkit):
@@ -45,7 +62,7 @@ def is_registered(bkit):
     return config.config.has_section(bkit)
 
 
-def register_bkit(bkit_directory):
+def register_bkit(bkit_directory, tag=""):
     """
     Registers given bkit_directory inside the config.
 
@@ -57,6 +74,65 @@ def register_bkit(bkit_directory):
     else:
         config.config.add_section(bkit_directory)
         config.config.set(bkit_directory, 'valid', 'true')
+        config.config.set(bkit_directory, 'tag', tag)
+
+
+def translate_bkit_id(id):
+    """Translates the identification of bkit repository to unique id
+
+    Since the user can either use the tag identification or the path
+    identifications to identify which bkit directory he wants to use
+    this takes care of it.
+
+    Arguments:
+        id(str): either pathname or tag
+
+    Returns:
+        str: pathname (or section name from config) of bkit
+    """
+    config_sections = config.config.sections()
+    tags = {str(config.config.get(section, 'tag')): section
+            for section in config_sections if section != "Global"
+            }
+
+    id_is_pathname = id in config_sections
+    id_is_tag = id in tags.keys()
+
+    # Warn user that the given id can be both pathname and tag
+    if id_is_pathname and id_is_tag:
+        utils.warn("'{}' is both tag and valid path name to bkit".format(id))
+        return id
+    # Abort with exceptions, not a bkit directory at all
+    elif not id_is_pathname and not id_is_tag:
+        raise utils.BkitFailureException("{} does not represents valid "
+                                         "bkit directory".format(id))
+    # Nothing to translate
+    elif id_is_pathname:
+        return id
+    else:
+        assert id_is_tag
+        return tags[id]
+
+
+def create_bkit_from_id(id, init=False):
+    """Create a bkit object represented by id
+
+    Attributes:
+        id(str): either pathname to the valid bkit or tagname
+
+    Returns:
+        BkitRepository: bkit represented by the id
+    """
+    # if we are creating bkit by running bkit init
+    # we don't construct the object at all
+    if init:
+        return BkitRepository(id, id)
+
+    bkit_path = translate_bkit_id(id)
+    bkit_tag = config.config.get(bkit_path, 'tag')
+    bkit = BkitRepository(bkit_path, bkit_tag)
+
+    return bkit
 
 
 def initialize_bkit_dir(bkit_dir):
