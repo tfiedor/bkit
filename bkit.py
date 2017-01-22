@@ -17,10 +17,15 @@ def cli(discover):
     TODO: Maybe the registering should be confirmed?
     """
     if discover:
-        for bkit_dir in core.get_existing_bkit_dirs():
-            if not core.is_registered(bkit_dir):
-                core.register_bkit(bkit_dir)
-    click.echo('Hello world!')
+        if click.confirm('bkit discovery may take lot of time. Are you sure?'):
+            utils.log("Discovering bkits in filesystem")
+            for bkit_dir in core.get_existing_bkit_dirs():
+                if not core.is_registered(bkit_dir):
+                    core.register_bkit(bkit_dir)
+        else:
+            utils.abort(".")
+
+    # Save registering of the new config
     atexit.register(config.save_config)
 
 
@@ -33,12 +38,17 @@ def init(dst, verify):
     utils.log("Called bkit.init()")
 
     # if there exists bkit directories, ask for confirmation
-    if verify and len(core.get_registered_bkits()):
+    bkits = core.get_registered_bkits()
+    if verify and len(bkits):
         utils.log('Found following .bkit directories')
-        click.confirm('Continue?')
+        for bkit in bkits:
+            assert bkit is not None
+            utils.log(" -> {}".format(bkit))
+        if not click.confirm('Continue?'):
+            utils.abort("initialization of directory '{}'.".format(dst))
 
     if not os.path.isdir(dst):
-        utils.error("'%s' is not a valid directory" % dst)
+        utils.error("'{}' is not a valid directory".format(dst))
 
     core.initialize_bkit_dir(os.path.join(dst, '.bkit'))
 

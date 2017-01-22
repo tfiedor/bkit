@@ -13,7 +13,6 @@ if os.path.exists(BKIT_CONFIG):
 else:
     config.add_section('Global')
 utils.log("Loaded config file: {}".format(BKIT_CONFIG))
-utils.log(config)
 
 
 def save_config():
